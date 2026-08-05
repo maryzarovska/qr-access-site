@@ -19,83 +19,53 @@ app.get('/ping', (req, res) => {
     res.send('pong');
 });
 
-app.get('/start', (req, res) => {
-    const tokenId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-
-    db.prepare("INSERT INTO tokens (id, expires_at) VALUES (?, ?)").run(tokenId, expiresAt);
-    
-    console.log(`✅ Token created: ${tokenId}`);
-    res.redirect(`/form/${tokenId}`);
+// /start route
+app.get('/start', async (req, res) => {
+    try {
+        const tokenId = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        await db.createToken(tokenId, expiresAt);
+        res.redirect(`/form/${tokenId}`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
 });
 
-app.get('/form/:tokenId', (req, res) => {
-    const { tokenId } = req.params;
-
-    const token = db.prepare(
-        "SELECT * FROM tokens WHERE id = ? AND expires_at > datetime('now') AND used = 0"
-    ).get(tokenId);
-
-    if (!token) {
-        return res.status(410).send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body { 
-                        background: #1a1a1a; 
-                        color: #ff6b00; 
-                        font-family: Arial, sans-serif;
-                        display: flex; 
-                        justify-content: center; 
-                        align-items: center; 
-                        height: 100vh; 
-                        margin: 0; 
-                        text-align: center;
-                    }
-                    h1 { font-size: 3em; }
-                    p { color: #ffa366; font-size: 1.2em; }
-                </style>
-            </head>
-            <body>
-                <div>
-                    <h1>⚠️ Expired</h1>
-                    <p>This access link has expired or already been used.</p>
-                    <p>Please scan the QR code again.</p>
-                </div>
-            </body>
-            </html>
-        `);
+// /form/:tokenId route
+app.get('/form/:tokenId', async (req, res) => {
+    try {
+        const token = await db.getToken(req.params.tokenId);
+        if (!token) {
+            return res.status(410).send('Expired');
+        }
+        res.sendFile(path.join(__dirname, 'public', 'form.html'));
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
     }
-
-    res.sendFile(path.join(__dirname, 'public', 'form.html'));
 });
 
-app.post('/submit/:tokenId', (req, res) => {
-    const { tokenId } = req.params;
-    const { phone, name } = req.body;
-
-    if (!phone || !name) {
-        return res.status(400).json({ error: 'Phone and name are required' });
+// /submit/:tokenId route
+app.post('/submit/:tokenId', async (req, res) => {
+    try {
+        const { tokenId } = req.params;
+        const { phone, name } = req.body;
+        
+        const token = await db.getToken(tokenId);
+        if (!token) {
+            return res.status(410).json({ error: 'Token expired' });
+        }
+        
+        await db.useToken(tokenId);
+        await db.saveSubmission(phone, name, tokenId);
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
     }
-
-    const token = db.prepare(
-        "SELECT * FROM tokens WHERE id = ? AND expires_at > datetime('now') AND used = 0"
-    ).get(tokenId);
-
-    if (!token) {
-        return res.status(410).json({ error: 'Token expired or already used' });
-    }
-
-    db.prepare("UPDATE tokens SET used = 1 WHERE id = ?").run(tokenId);
-    db.prepare("INSERT INTO submissions (phone, name, token_id) VALUES (?, ?, ?)").run(phone, name, tokenId);
-
-    console.log(`📝 Submission saved: ${name} - ${phone}`);
-    res.json({ success: true, message: 'Thank you!' });
 });
-
 app.listen(PORT, () => {
     console.log(`✅ Server running at http://localhost:${PORT}`);
     console.log(`📍 Test: http://localhost:${PORT}/ping`);
