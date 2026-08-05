@@ -1,7 +1,7 @@
 const QRCode = require('qrcode');
 const path = require('path');
 
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = 'https://qr-access-site.onrender.com';
 const qrContent = `${SERVER_URL}/start`;
 
 QRCode.toFile(
