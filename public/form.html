@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Зареєструйся на розіграш!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0d0d0d;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .form-container {
+            background: #1a1a1a;
+            padding: 40px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #ff6b0033;
+            box-shadow: 0 10px 40px rgba(255, 107, 0, 0.1);
+        }
+        
+        h1 {
+            color: #ff6b00;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #ffa366;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        
+        .timer {
+            background: #000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid #ff6b0044;
+        }
+        
+        .timer-label {
+            color: #888;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .timer-countdown {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ff6b00;
+            font-family: monospace;
+        }
+        
+        .timer-countdown.warning {
+            color: #ff3300;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #ffa366;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #ff6b00;
+            box-shadow: 0 0 20px rgba(255, 107, 0, 0.2);
+        }
+        
+        input::placeholder {
+            color: #555;
+        }
+        
+        button {
+            width: 100%;
+            padding: 16px;
+            background: #ff6b00;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #ff8533;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 0, 0.3);
+        }
+        
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .success-message .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        .success-message h2 {
+            color: #ff6b00;
+            margin-bottom: 10px;
+        }
+        
+        .error-message {
+            color: #ff3300;
+            font-size: 0.9em;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container" id="formContainer">
+        <h1>📋 Зареєструйся на розіграш!</h1>
+        <p class="subtitle">Будь ласка, заповніть свої дані нижче</p>
+        
+        <div class="timer">
+            <div class="timer-label">Залишилось часу</div>
+            <div class="timer-countdown" id="timer">5:00</div>
+        </div>
+        
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="name">Повне ім'я</label>
+                <input type="text" id="name" name="name" placeholder="Введіть ваше ім'я" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Номер телефону</label>
+                <input type="tel" id="phone" name="phone" placeholder="Введіть ваш номер телефону" required>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            
+            <button type="submit">Відправити</button>
+        </form>
+    </div>
+    
+    <div class="success-message" id="successMessage">
+        <div class="icon">✅</div>
+        <h2>Дякуємо за участь в розіграші!</h2>
+        <p style="color: #ffa366;">Ваші дані успішно надіслано. Очікуйте на результати 10-го серпня в наших соцмережах! <a href="https://linktr.ee/straykids.ua" target="_blank">https://linktr.ee/straykids.ua</a></p>
+    </div>
+    
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const tokenId = pathParts[pathParts.length - 1];
+        
+        let timeLeft = 300;
+        const timerElement = document.getElementById('timer');
+        
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 60) {
+                timerElement.classList.add('warning');
+            }
+            
+            if (timeLeft <= 0) {
+                document.getElementById('formContainer').innerHTML = `
+                    <div class="success-message" style="display: block;">
+                        <div class="icon">⏰</div>
+                        <h2>Час вичерпано</h2>
+                        <p style="color: #ffa366;">Будь ласка, відскануйте QR-код ще раз, щоб отримати нове посилання.</p>
+                    </div>
+                `;
+                clearInterval(timerInterval);
+            }
+            
+            timeLeft--;
+        }
+        
+        const timerInterval = setInterval(updateTimer, 1000);
+        
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const errorElement = document.getElementById('errorMessage');
+            const submitButton = e.target.querySelector('button');
+            
+            if (!name || !phone) {
+                errorElement.textContent = 'Будь ласка, заповніть усі поля';
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            errorElement.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            
+            try {
+                const response = await fetch(`/submit/${tokenId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('formContainer').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+                    clearInterval(timerInterval);
+                } else {
+                    errorElement.textContent = data.error || 'Submission failed';
+                    errorElement.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit';
+                }
+            } catch (error) {
+                errorElement.textContent = 'Connection error. Please try again.';
+                errorElement.style.display = 'block';  
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit';
+            }
+        });
+    </script>
+</body>
+</html>
