@@ -1,9 +1,10 @@
 const { Pool } = require('pg');
 
+dns.setDefaultResultOrder('ipv4first');
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    family: 4
+    ssl: { rejectUnauthorized: false }
 });
 
 pool.query(`
